@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: bank-dashboard
+    runtime: static
+    buildCommand: echo "Static site - no build needed"
+    staticPublishPath: ./public
+    headers:
+      - path: /*
+        name: Content-Type
+        value: text/html; charset=utf-8

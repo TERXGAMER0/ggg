@@ -1,0 +1,2907 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>تحليل الحسابات البنكية</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #0F0F1A;
+    --card: #1A1A2E;
+    --card2: #222240;
+    --border: #2A2A45;
+    --text: #E8E8F0;
+    --text2: #9898B0;
+    --red: #FF6B6B;
+    --green: #4ECDC4;
+    --blue: #45B7D1;
+    --gold: #FFEAA7;
+    --purple: #BB8FCE;
+    --accent: #6C63FF;
+    --radius: 16px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family: 'Tajawal', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    direction: rtl;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* ===== HEADER ===== */
+.header {
+    background: linear-gradient(135deg, #1A1A40 0%, #2D1B69 50%, #6C63FF 100%);
+    padding: 40px 20px 30px;
+    text-align: center;
+}
+.header h1 { font-size: 1.6em; font-weight: 900; margin-bottom: 6px; }
+.header p { font-size: 0.9em; opacity: 0.7; }
+
+/* ===== SUMMARY STRIP ===== */
+.summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin: 0 12px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: -20px;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.sum-item {
+    background: var(--card);
+    padding: 16px 8px;
+    text-align: center;
+}
+.sum-val {
+    font-size: 1.15em;
+    font-weight: 900;
+    direction: ltr;
+    display: inline-block;
+}
+.sum-val.red { color: var(--red); }
+.sum-val.green { color: var(--green); }
+.sum-val.blue { color: var(--blue); }
+.sum-label {
+    font-size: 0.7em;
+    color: var(--text2);
+    margin-top: 4px;
+}
+
+/* ===== TABS ===== */
+.tabs {
+    display: flex;
+    gap: 6px;
+    margin: 20px 12px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+    flex-shrink: 0;
+    padding: 10px 18px;
+    border-radius: 25px;
+    font-size: 0.85em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    white-space: nowrap;
+}
+.tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+/* ===== CONTENT ===== */
+.content { padding: 16px 12px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ===== CARDS ===== */
+.card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 20px 16px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+}
+.card-title {
+    font-size: 1.05em;
+    font-weight: 800;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ===== STATS GRID ===== */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.stat {
+    background: var(--card2);
+    border-radius: 14px;
+    padding: 16px 12px;
+    text-align: center;
+    border: 1px solid var(--border);
+}
+.stat .icon { font-size: 1.5em; margin-bottom: 6px; }
+.stat .val {
+    font-size: 1.3em;
+    font-weight: 900;
+    direction: ltr;
+    display: inline-block;
+}
+.stat .lbl { font-size: 0.75em; color: var(--text2); margin-top: 3px; }
+
+/* ===== ACCOUNT INFO ===== */
+.info-grid {
+    display: grid;
+    gap: 8px;
+}
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--card2);
+    border-radius: 10px;
+    font-size: 0.85em;
+}
+.info-key { color: var(--text2); font-weight: 500; }
+.info-val { font-weight: 700; direction: ltr; text-align: left; max-width: 60%; word-break: break-all; }
+
+/* ===== CATEGORY BARS ===== */
+.cat-row {
+    margin-bottom: 14px;
+}
+.cat-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+.cat-name { font-weight: 700; font-size: 0.9em; }
+.cat-meta { font-size: 0.75em; color: var(--text2); }
+.cat-bar-bg {
+    height: 10px;
+    background: var(--card2);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.cat-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 1.5s ease;
+}
+.cat-bottom {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+}
+.cat-amt { font-size: 0.8em; font-weight: 700; direction: ltr; }
+.cat-pct { font-size: 0.75em; color: var(--text2); }
+
+/* ===== MERCHANT LIST ===== */
+.m-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: var(--card2);
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+.m-rank {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 0.8em;
+    flex-shrink: 0;
+}
+.m-info { flex: 1; min-width: 0; }
+.m-name { font-weight: 700; font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-cat { font-size: 0.7em; color: var(--text2); }
+.m-amt {
+    font-weight: 900;
+    font-size: 0.9em;
+    color: var(--red);
+    direction: ltr;
+    flex-shrink: 0;
+    text-align: left;
+}
+.m-amt small { font-size: 0.7em; opacity: 0.7; }
+
+/* ===== CHART ===== */
+.chart-wrap {
+    position: relative;
+    height: 260px;
+    margin: 10px 0;
+}
+
+/* ===== TABLE ===== */
+.search-box {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: var(--card2);
+    color: var(--text);
+    font-family: 'Tajawal', sans-serif;
+    font-size: 0.9em;
+    margin-bottom: 12px;
+    outline: none;
+}
+.search-box:focus { border-color: var(--accent); }
+
+.tbl-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8em;
+    white-space: nowrap;
+}
+thead th {
+    background: var(--card2);
+    padding: 10px 8px;
+    text-align: right;
+    font-weight: 700;
+    font-size: 0.85em;
+    color: var(--text2);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+tbody td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border);
+}
+tbody tr:hover { background: rgba(108,99,255,0.08); }
+.td-date { color: var(--text2); font-size: 0.85em; }
+.td-desc { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.td-amt { font-weight: 800; direction: ltr; text-align: left; }
+.td-amt.exp { color: var(--red); }
+.td-amt.inc { color: var(--green); }
+.td-bal { color: var(--text2); direction: ltr; text-align: left; font-size: 0.85em; }
+
+/* ===== COMPARISON ===== */
+.cmp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.cmp-card {
+    background: var(--card2);
+    border-radius: 14px;
+    padding: 14px;
+    text-align: center;
+    border: 1px solid var(--border);
+}
+.cmp-card.rajhi { border-top: 3px solid #4ECDC4; }
+.cmp-card.snb { border-top: 3px solid #45B7D1; }
+.cmp-card .bank-name { font-weight: 800; font-size: 0.85em; margin-bottom: 10px; }
+.cmp-val { font-size: 1.1em; font-weight: 900; direction: ltr; display: inline-block; }
+.cmp-lbl { font-size: 0.7em; color: var(--text2); margin-top: 2px; }
+.cmp-item { margin-bottom: 12px; }
+
+/* ===== FOOTER ===== */
+footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 0.75em;
+    color: var(--text2);
+    margin-top: 20px;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (min-width: 768px) {
+    .header h1 { font-size: 2.2em; }
+    .summary { max-width: 600px; margin-left: auto; margin-right: auto; margin-top: -20px; }
+    .content { max-width: 900px; margin: 0 auto; }
+    .stats { grid-template-columns: repeat(4, 1fr); }
+    .sum-val { font-size: 1.4em; }
+    .chart-wrap { height: 320px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>📊 تحليل الحسابات البنكية</h1>
+    <p>تقرير شامل لجميع العمليات المالية</p>
+</div>
+
+<div class="summary">
+    <div class="sum-item">
+        <div class="sum-val red">22,496</div>
+        <div class="sum-label">إجمالي المصروفات</div>
+    </div>
+    <div class="sum-item">
+        <div class="sum-val green">16,938</div>
+        <div class="sum-label">إجمالي الإيداعات</div>
+    </div>
+    <div class="sum-item">
+        <div class="sum-val blue">387</div>
+        <div class="sum-label">عدد العمليات</div>
+    </div>
+</div>
+
+<div class="tabs">
+    <div class="tab active" data-tab="rajhi">🏦 الراجحي</div>
+    <div class="tab" data-tab="snb">🏦 الأهلي</div>
+    <div class="tab" data-tab="cmp">📊 المقارنة</div>
+</div>
+
+<div class="content">
+
+<!-- ==================== RAJHI ==================== -->
+<div id="rajhi" class="tab-panel active">
+
+    <div class="stats">
+        <div class="stat">
+            <div class="icon">💸</div>
+            <div class="val" style="color:var(--red)">15,340.39</div>
+            <div class="lbl">مصروفات (ر.س)</div>
+        </div>
+        <div class="stat">
+            <div class="icon">💰</div>
+            <div class="val" style="color:var(--green)">9,538.00</div>
+            <div class="lbl">إيداعات (ر.س)</div>
+        </div>
+        <div class="stat">
+            <div class="icon">📝</div>
+            <div class="val">119</div>
+            <div class="lbl">عملية مصروف</div>
+        </div>
+        <div class="stat">
+            <div class="icon">📊</div>
+            <div class="val">129</div>
+            <div class="lbl">متوسط المصروف</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">ℹ️ معلومات الحساب</div>
+        <div class="info-grid">
+            <div class="info-row"><span class="info-key">العميل</span><span class="info-val">محمد سعيد طالب موالب</span></div>
+            <div class="info-row"><span class="info-key">رقم الحساب</span><span class="info-val">470608016099443</span></div>
+            <div class="info-row"><span class="info-key">الآيبان</span><span class="info-val">SA6780000470608016099443</span></div>
+            <div class="info-row"><span class="info-key">الفترة</span><span class="info-val">2026/08/03 - 2026/09/03</span></div>
+            <div class="info-row"><span class="info-key">رصيد افتتاحي</span><span class="info-val">7,705.55 ر.س</span></div>
+            <div class="info-row"><span class="info-key">رصيد ختامي</span><span class="info-val">1,903.16 ر.س</span></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">🥧 توزيع المصروفات</div>
+        <div class="chart-wrap"><canvas id="rPie"></canvas></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📂 تفصيل الفئات</div>
+        <div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🏧 سحب نقدي</span>
+                    <span class="cat-meta">1 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:100.0%;background:#FF6B6B;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">5,000.00 ر.س</span>
+                    <span class="cat-pct">100.0%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">💸 تحويلات</span>
+                    <span class="cat-meta">4 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:92.03459999999998%;background:#4ECDC4;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">4,601.73 ر.س</span>
+                    <span class="cat-pct">92.0%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🛒 تسوق أونلاين</span>
+                    <span class="cat-meta">8 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:24.000200000000007%;background:#45B7D1;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">1,200.01 ر.س</span>
+                    <span class="cat-pct">24.0%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🏪 متاجر أخرى</span>
+                    <span class="cat-meta">17 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:22.1068%;background:#96CEB4;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">1,105.34 ر.س</span>
+                    <span class="cat-pct">22.1%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🛒 بقالة ومتاجر</span>
+                    <span class="cat-meta">21 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:20.2388%;background:#FFEAA7;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">1,011.94 ر.س</span>
+                    <span class="cat-pct">20.2%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🍽️ مطاعم وأكل</span>
+                    <span class="cat-meta">37 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:17.330000000000002%;background:#DDA0DD;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">866.50 ر.س</span>
+                    <span class="cat-pct">17.3%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🛍️ تسوق</span>
+                    <span class="cat-meta">7 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:15.004999999999999%;background:#98D8C8;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">750.25 ر.س</span>
+                    <span class="cat-pct">15.0%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">📱 فواتير واتصالات</span>
+                    <span class="cat-meta">1 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:10.0396%;background:#F7DC6F;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">501.98 ر.س</span>
+                    <span class="cat-pct">10.0%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🚗 مواصلات</span>
+                    <span class="cat-meta">18 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:3.1478000000000006%;background:#BB8FCE;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">157.39 ر.س</span>
+                    <span class="cat-pct">3.1%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🏥 صحة وطبية</span>
+                    <span class="cat-meta">1 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:3%;background:#85C1E9;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">143.75 ر.س</span>
+                    <span class="cat-pct">2.9%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">💳 رسوم بنكية</span>
+                    <span class="cat-meta">4 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:3%;background:#FF6B6B;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">1.50 ر.س</span>
+                    <span class="cat-pct">0.0%</span>
+                </div>
+            </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📅 الإنفاق اليومي</div>
+        <div class="chart-wrap"><canvas id="rDaily"></canvas></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">🏪 أكثر المتاجر</div>
+        <div class="m-item">
+                <span class="m-rank">1</span>
+                <div class="m-info"><div class="m-name">((RAJHIA1L018009MP-8804</div><div class="m-cat">1 عملية · 🏪 متاجر أخرى</div></div>
+                <span class="m-amt">5,000.00<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">2</span>
+                <div class="m-info"><div class="m-name">(ﻲﻠﺤﻣ) Apple Pay ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</div><div class="m-cat">4 عملية · 🏪 متاجر أخرى</div></div>
+                <span class="m-amt">1,548.08<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">3</span>
+                <div class="m-info"><div class="m-name">ALSHAMIL CO</div><div class="m-cat">1 عملية · 🛍️ تسوق</div></div>
+                <span class="m-amt">701.25<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">4</span>
+                <div class="m-info"><div class="m-name">MAHA OPTICALS</div><div class="m-cat">2 عملية · 🏪 متاجر أخرى</div></div>
+                <span class="m-amt">700.00<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">5</span>
+                <div class="m-info"><div class="m-name">Mohammed Zuhair Ibrahi</div><div class="m-cat">15 عملية · 🍽️ مطاعم وأكل</div></div>
+                <span class="m-amt">391.50<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">6</span>
+                <div class="m-info"><div class="m-name">ALREEF FOR VEGET</div><div class="m-cat">5 عملية · 🛒 بقالة ومتاجر</div></div>
+                <span class="m-amt">300.91<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">7</span>
+                <div class="m-info"><div class="m-name">market</div><div class="m-cat">2 عملية · 🛒 بقالة ومتاجر</div></div>
+                <span class="m-amt">291.53<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">8</span>
+                <div class="m-info"><div class="m-name">ALMUJ</div><div class="m-cat">3 عملية · 🏪 متاجر أخرى</div></div>
+                <span class="m-amt">285.54<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">9</span>
+                <div class="m-info"><div class="m-name">RAWAAT AL-AMAAL</div><div class="m-cat">6 عملية · 🛒 بقالة ومتاجر</div></div>
+                <span class="m-amt">190.50<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">10</span>
+                <div class="m-info"><div class="m-name">Crescent Medical</div><div class="m-cat">1 عملية · 🏥 صحة وطبية</div></div>
+                <span class="m-amt">143.75<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">11</span>
+                <div class="m-info"><div class="m-name">UBER.COM NL</div><div class="m-cat">14 عملية · 🚗 مواصلات</div></div>
+                <span class="m-amt">129.28<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">12</span>
+                <div class="m-info"><div class="m-name">EXPRESS FOOD COMPANY</div><div class="m-cat">5 عملية · 🍽️ مطاعم وأكل</div></div>
+                <span class="m-amt">105.00<small> ر.س</small></span>
+            </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📋 جميع العمليات (122)</div>
+        <input class="search-box" type="text" placeholder="🔍 بحث..." oninput="filterTbl('rTbl',this.value)">
+        <div class="tbl-wrap">
+            <table id="rTbl">
+                <thead><tr><th>التاريخ</th><th>الوصف</th><th>المبلغ</th><th>الرصيد</th></tr></thead>
+                <tbody><tr class="tx-exp">
+                <td class="td-date">2026/08/03</td>
+                <td class="td-desc">DLAL</td>
+                <td class="td-amt exp">-24.00</td>
+                <td class="td-bal">7,681.55</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/03</td>
+                <td class="td-desc">ALREEF FOR VEGET</td>
+                <td class="td-amt exp">-80.92</td>
+                <td class="td-bal">7,600.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/03</td>
+                <td class="td-desc">RAWAAT AL-AMAAL</td>
+                <td class="td-amt exp">-54.50</td>
+                <td class="td-bal">7,546.13</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/04</td>
+                <td class="td-desc">Riyadh</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">7,542.13</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/05</td>
+                <td class="td-desc">EXPRESS FOOD COMPANY</td>
+                <td class="td-amt exp">-21.50</td>
+                <td class="td-bal">7,520.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/05</td>
+                <td class="td-desc">(ﻲﻠﺤﻣ) Apple Pay ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-1,000.00</td>
+                <td class="td-bal">6,520.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/05</td>
+                <td class="td-desc">metro</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">6,516.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/05</td>
+                <td class="td-desc">mataeim ramz almiawih</td>
+                <td class="td-amt exp">-43.00</td>
+                <td class="td-bal">6,473.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/05</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-13.00</td>
+                <td class="td-bal">6,460.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/05</td>
+                <td class="td-desc">ZAMAN</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">6,440.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/06</td>
+                <td class="td-desc">ABDULMOHSEN Co</td>
+                <td class="td-amt exp">-13.00</td>
+                <td class="td-bal">6,427.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/08</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-67.50</td>
+                <td class="td-bal">6,360.13</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/08</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-6.00</td>
+                <td class="td-bal">6,354.13</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/08</td>
+                <td class="td-desc">alarab almahdwd</td>
+                <td class="td-amt exp">-21.00</td>
+                <td class="td-bal">6,333.13</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/09</td>
+                <td class="td-desc">Abdul Mohsen Al-</td>
+                <td class="td-amt exp">-17.00</td>
+                <td class="td-bal">6,316.13</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/10</td>
+                <td class="td-desc">(ﻲﻠﺤﻣ) Apple Pay ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-501.98</td>
+                <td class="td-bal">5,814.15</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/10</td>
+                <td class="td-desc">ALSHAMIL CO</td>
+                <td class="td-amt exp">-701.25</td>
+                <td class="td-bal">5,112.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/10</td>
+                <td class="td-desc">EXPRESS FOOD COMPANY</td>
+                <td class="td-amt exp">-24.00</td>
+                <td class="td-bal">5,088.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/10</td>
+                <td class="td-desc">ALREEF FOR VEGET</td>
+                <td class="td-amt exp">-70.00</td>
+                <td class="td-bal">5,018.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/11</td>
+                <td class="td-desc">Basha Chicken Resta</td>
+                <td class="td-amt exp">-43.00</td>
+                <td class="td-bal">4,975.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/11</td>
+                <td class="td-desc">Shawayat almustaqbal C</td>
+                <td class="td-amt exp">-12.00</td>
+                <td class="td-bal">4,963.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/11</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">4,954.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/12</td>
+                <td class="td-desc">riyadh</td>
+                <td class="td-amt exp">-50.00</td>
+                <td class="td-bal">4,904.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/12</td>
+                <td class="td-desc">Shawayat almustaqbal C</td>
+                <td class="td-amt exp">-21.00</td>
+                <td class="td-bal">4,883.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/12</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-30.00</td>
+                <td class="td-bal">4,853.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/12</td>
+                <td class="td-desc">Al-Ibdaiya Co</td>
+                <td class="td-amt exp">-18.00</td>
+                <td class="td-bal">4,835.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/12</td>
+                <td class="td-desc">ALFRSAN EST</td>
+                <td class="td-amt exp">-10.00</td>
+                <td class="td-bal">4,825.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/12</td>
+                <td class="td-desc">Moda Trading Es</td>
+                <td class="td-amt exp">-2.00</td>
+                <td class="td-bal">4,823.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/12</td>
+                <td class="td-desc">Al-Ibdaiya Co</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">4,814.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/12</td>
+                <td class="td-desc">Moda Trading Es</td>
+                <td class="td-amt exp">-7.00</td>
+                <td class="td-bal">4,807.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/12</td>
+                <td class="td-desc">Moda Trading Es</td>
+                <td class="td-amt exp">-3.00</td>
+                <td class="td-bal">4,804.90</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-42.50</td>
+                <td class="td-bal">4,762.40</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">COM AMSTERDAM NL</td>
+                <td class="td-amt exp">-26.92</td>
+                <td class="td-bal">4,735.48</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">COM AMSTERDAM NL</td>
+                <td class="td-amt exp">-0.62</td>
+                <td class="td-bal">4,734.86</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-14.90</td>
+                <td class="td-bal">4,719.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-0.35</td>
+                <td class="td-bal">4,719.61</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-13.90</td>
+                <td class="td-bal">4,705.71</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-0.32</td>
+                <td class="td-bal">4,705.39</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-34.90</td>
+                <td class="td-bal">4,670.49</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-0.81</td>
+                <td class="td-bal">4,669.68</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-14.92</td>
+                <td class="td-bal">4,654.76</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-0.35</td>
+                <td class="td-bal">4,654.41</td>
+            </tr><tr class="tx-inc">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">20260813SAARNBARNB1B93112213585437/HATIM AGEELI</td>
+                <td class="td-amt inc">+38.00</td>
+                <td class="td-bal">4,692.41</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/14</td>
+                <td class="td-desc">(ﻲﻠﺤﻣ) Apple Pay ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-45.78</td>
+                <td class="td-bal">4,646.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">Makhazin Alearayn Co</td>
+                <td class="td-amt exp">-60.00</td>
+                <td class="td-bal">4,586.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">riyadh bus</td>
+                <td class="td-amt exp">-5.00</td>
+                <td class="td-bal">4,581.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">ALMUJ</td>
+                <td class="td-amt exp">-195.75</td>
+                <td class="td-bal">4,385.88</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">ALMUJ</td>
+                <td class="td-amt exp">-11.95</td>
+                <td class="td-bal">4,373.93</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">Riyadh</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">4,369.93</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/17</td>
+                <td class="td-desc">Riyadh</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">4,365.93</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/18</td>
+                <td class="td-desc">Mohsen buffet fo</td>
+                <td class="td-amt exp">-17.00</td>
+                <td class="td-bal">4,348.93</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/18</td>
+                <td class="td-desc">Mohsen buffet fo</td>
+                <td class="td-amt exp">-1.00</td>
+                <td class="td-bal">4,347.93</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/19</td>
+                <td class="td-desc">ALREEF FOR VEGET</td>
+                <td class="td-amt exp">-87.00</td>
+                <td class="td-bal">4,260.93</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/19</td>
+                <td class="td-desc">Grocery</td>
+                <td class="td-amt exp">-21.50</td>
+                <td class="td-bal">4,239.43</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/20</td>
+                <td class="td-desc">Crescent Medical</td>
+                <td class="td-amt exp">-143.75</td>
+                <td class="td-bal">4,095.68</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/20</td>
+                <td class="td-desc">NUKHBAT QURTOBA LLTEJA</td>
+                <td class="td-amt exp">-13.00</td>
+                <td class="td-bal">4,082.68</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/20</td>
+                <td class="td-desc">EXPRESS FOOD COMPANY</td>
+                <td class="td-amt exp">-47.50</td>
+                <td class="td-bal">4,035.18</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/20</td>
+                <td class="td-desc">EXPRESS FOOD COMPANY</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">4,026.18</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/20</td>
+                <td class="td-desc">market</td>
+                <td class="td-amt exp">-245.91</td>
+                <td class="td-bal">3,780.27</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/20</td>
+                <td class="td-desc">EXPRESS FOOD COMPANY</td>
+                <td class="td-amt exp">-3.00</td>
+                <td class="td-bal">3,777.27</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/20</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-18.91</td>
+                <td class="td-bal">3,758.36</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/20</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-0.44</td>
+                <td class="td-bal">3,757.92</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/21</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-88.50</td>
+                <td class="td-bal">3,669.42</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/21</td>
+                <td class="td-desc">MAHA OPTICALS</td>
+                <td class="td-amt exp">-350.00</td>
+                <td class="td-bal">3,319.42</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">TTR</td>
+                <td class="td-amt exp">-12.50</td>
+                <td class="td-bal">3,306.92</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">COM AMSTERDAM NL</td>
+                <td class="td-amt exp">-11.90</td>
+                <td class="td-bal">3,295.02</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">COM AMSTERDAM NL</td>
+                <td class="td-amt exp">-0.28</td>
+                <td class="td-bal">3,294.74</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">COM AMSTERDAM NL</td>
+                <td class="td-amt exp">-11.90</td>
+                <td class="td-bal">3,282.84</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">COM AMSTERDAM NL</td>
+                <td class="td-amt exp">-0.28</td>
+                <td class="td-bal">3,282.56</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">UBER AMSTERDAM NL</td>
+                <td class="td-amt exp">-14.11</td>
+                <td class="td-bal">3,268.45</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">(ﻲﻠﺤﻣ) Apple Pay ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-0.32</td>
+                <td class="td-bal">3,268.13</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/24</td>
+                <td class="td-desc">Mohsen buffet fo</td>
+                <td class="td-amt exp">-18.00</td>
+                <td class="td-bal">3,250.13</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/24</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-13.50</td>
+                <td class="td-bal">3,236.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/24</td>
+                <td class="td-desc">riyadh bus</td>
+                <td class="td-amt exp">-5.00</td>
+                <td class="td-bal">3,231.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/25</td>
+                <td class="td-desc">ALMUJ</td>
+                <td class="td-amt exp">-77.84</td>
+                <td class="td-bal">3,153.79</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/25</td>
+                <td class="td-desc">MAHA OPTICALS</td>
+                <td class="td-amt exp">-350.00</td>
+                <td class="td-bal">2,803.79</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/25</td>
+                <td class="td-desc">ALREEF FOR VEGET</td>
+                <td class="td-amt exp">-14.49</td>
+                <td class="td-bal">2,789.30</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/25</td>
+                <td class="td-desc">DLAL</td>
+                <td class="td-amt exp">-26.00</td>
+                <td class="td-bal">2,763.30</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/25</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-11.00</td>
+                <td class="td-bal">2,752.30</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/26</td>
+                <td class="td-desc">TTR</td>
+                <td class="td-amt exp">-9.75</td>
+                <td class="td-bal">2,742.55</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/26</td>
+                <td class="td-desc">Zayed Grocery</td>
+                <td class="td-amt exp">-28.00</td>
+                <td class="td-bal">2,714.55</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/26</td>
+                <td class="td-desc">RESTAURANT FATIMAH MUT</td>
+                <td class="td-amt exp">-24.00</td>
+                <td class="td-bal">2,690.55</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/26</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-36.00</td>
+                <td class="td-bal">2,654.55</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/26</td>
+                <td class="td-desc">GB</td>
+                <td class="td-amt exp">-30.61</td>
+                <td class="td-bal">2,623.94</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/27</td>
+                <td class="td-desc">RAWAAT AL-AMAAL</td>
+                <td class="td-amt exp">-8.00</td>
+                <td class="td-bal">2,615.94</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/27</td>
+                <td class="td-desc">RIYADH</td>
+                <td class="td-amt exp">-15.00</td>
+                <td class="td-bal">2,600.94</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/27</td>
+                <td class="td-desc">Online Purchase from ISH7NHA</td>
+                <td class="td-amt exp">-22.90</td>
+                <td class="td-bal">2,578.04</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/27</td>
+                <td class="td-desc">RAWAAT AL-AMAAL</td>
+                <td class="td-amt exp">-29.00</td>
+                <td class="td-bal">2,549.04</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/28</td>
+                <td class="td-desc">RAWAAT AL-AMAAL</td>
+                <td class="td-amt exp">-64.00</td>
+                <td class="td-bal">2,485.04</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/28</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-15.90</td>
+                <td class="td-bal">2,469.14</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/28</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-0.37</td>
+                <td class="td-bal">2,468.77</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/29</td>
+                <td class="td-desc">Resturant Atyab altaif</td>
+                <td class="td-amt exp">-21.00</td>
+                <td class="td-bal">2,447.77</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/30</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-16.50</td>
+                <td class="td-bal">2,431.27</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/30</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-15.50</td>
+                <td class="td-bal">2,415.77</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/30</td>
+                <td class="td-desc">ALREEF FOR VEGET</td>
+                <td class="td-amt exp">-48.50</td>
+                <td class="td-bal">2,367.27</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/31</td>
+                <td class="td-desc">RAWAAT AL-AMAAL</td>
+                <td class="td-amt exp">-23.00</td>
+                <td class="td-bal">2,344.27</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/31</td>
+                <td class="td-desc">market</td>
+                <td class="td-amt exp">-45.62</td>
+                <td class="td-bal">2,298.65</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/31</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-12.91</td>
+                <td class="td-bal">2,285.74</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/31</td>
+                <td class="td-desc">UBER.COM NL</td>
+                <td class="td-amt exp">-0.30</td>
+                <td class="td-bal">2,285.44</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/01</td>
+                <td class="td-desc">AlMajd Leading Co</td>
+                <td class="td-amt exp">-23.00</td>
+                <td class="td-bal">2,262.44</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/01</td>
+                <td class="td-desc">Zayed Grocery</td>
+                <td class="td-amt exp">-39.00</td>
+                <td class="td-bal">2,223.44</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/01</td>
+                <td class="td-desc">Shawayat almustaqbal C</td>
+                <td class="td-amt exp">-37.00</td>
+                <td class="td-bal">2,186.44</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/01</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-17.00</td>
+                <td class="td-bal">2,169.44</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/01</td>
+                <td class="td-desc">HAZAZ EST</td>
+                <td class="td-amt exp">-10.55</td>
+                <td class="td-bal">2,158.89</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/01</td>
+                <td class="td-desc">mataeim ramz almiawih</td>
+                <td class="td-amt exp">-6.00</td>
+                <td class="td-bal">2,152.89</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">AlMajd Leading Co</td>
+                <td class="td-amt exp">-23.50</td>
+                <td class="td-bal">2,129.39</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">AlMajd Leading Co</td>
+                <td class="td-amt exp">-8.00</td>
+                <td class="td-bal">2,121.39</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-13.00</td>
+                <td class="td-bal">2,108.39</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">Riyadh</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">2,104.39</td>
+            </tr><tr class="tx-inc">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">تحويل</td>
+                <td class="td-amt inc">+5,000.00</td>
+                <td class="td-bal">7,104.39</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">((RAJHIA1L018009MP-8804</td>
+                <td class="td-amt exp">-5,000.00</td>
+                <td class="td-bal">2,104.39</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">حوالة صادرة</td>
+                <td class="td-amt exp">-100.00</td>
+                <td class="td-bal">2,004.39</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">حوالة صادرة</td>
+                <td class="td-amt exp">-0.58</td>
+                <td class="td-bal">2,003.81</td>
+            </tr><tr class="tx-inc">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">تحويل</td>
+                <td class="td-amt inc">+4,500.00</td>
+                <td class="td-bal">6,503.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">حوالة صادرة</td>
+                <td class="td-amt exp">-4,500.00</td>
+                <td class="td-bal">2,003.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">حوالة صادرة</td>
+                <td class="td-amt exp">-1.15</td>
+                <td class="td-bal">2,002.66</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">RIYADH</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">1,993.66</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">AlMajd Leading Co</td>
+                <td class="td-amt exp">-26.00</td>
+                <td class="td-bal">1,967.66</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">RIYADH</td>
+                <td class="td-amt exp">-6.00</td>
+                <td class="td-bal">1,961.66</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">Mohammed Zuhair Ibrahi</td>
+                <td class="td-amt exp">-12.50</td>
+                <td class="td-bal">1,949.16</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">Shawayat almustaqbal C</td>
+                <td class="td-amt exp">-34.00</td>
+                <td class="td-bal">1,915.16</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">RAWAAT AL-AMAAL</td>
+                <td class="td-amt exp">-12.00</td>
+                <td class="td-bal">1,903.16</td>
+            </tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== SNB ==================== -->
+<div id="snb" class="tab-panel">
+
+    <div class="stats">
+        <div class="stat">
+            <div class="icon">💸</div>
+            <div class="val" style="color:var(--red)">7,155.21</div>
+            <div class="lbl">مصروفات (ر.س)</div>
+        </div>
+        <div class="stat">
+            <div class="icon">💰</div>
+            <div class="val" style="color:var(--green)">7,400.00</div>
+            <div class="lbl">إيداعات (ر.س)</div>
+        </div>
+        <div class="stat">
+            <div class="icon">📝</div>
+            <div class="val">260</div>
+            <div class="lbl">عملية مصروف</div>
+        </div>
+        <div class="stat">
+            <div class="icon">📊</div>
+            <div class="val">28</div>
+            <div class="lbl">متوسط المصروف</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">ℹ️ معلومات الحساب</div>
+        <div class="info-grid">
+            <div class="info-row"><span class="info-key">العميل</span><span class="info-val">محمد سعيد طالب موالب</span></div>
+            <div class="info-row"><span class="info-key">رقم الحساب</span><span class="info-val">11100064293602</span></div>
+            <div class="info-row"><span class="info-key">الفترة</span><span class="info-val">2026/06/28 - 2026/09/05</span></div>
+            <div class="info-row"><span class="info-key">عدد العمليات</span><span class="info-val">286</span></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">🥧 توزيع المصروفات</div>
+        <div class="chart-wrap"><canvas id="sPie"></canvas></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📂 تفصيل الفئات</div>
+        <div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🏪 متاجر أخرى</span>
+                    <span class="cat-meta">77 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:100.0%;background:#FF6B6B;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">2,811.86 ر.س</span>
+                    <span class="cat-pct">100.0%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🛒 بقالة ومتاجر</span>
+                    <span class="cat-meta">93 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:83.27441622271378%;background:#4ECDC4;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">2,341.56 ر.س</span>
+                    <span class="cat-pct">83.3%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🍽️ مطاعم وأكل</span>
+                    <span class="cat-meta">85 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:51.88736281322684%;background:#45B7D1;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">1,459.00 ر.س</span>
+                    <span class="cat-pct">51.9%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🛒 تسوق أونلاين</span>
+                    <span class="cat-meta">2 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:17.916610357556916%;background:#96CEB4;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">503.79 ر.س</span>
+                    <span class="cat-pct">17.9%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🛍️ تسوق</span>
+                    <span class="cat-meta">1 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:3%;background:#FFEAA7;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">20.00 ر.س</span>
+                    <span class="cat-pct">0.7%</span>
+                </div>
+            </div><div class="cat-row">
+                <div class="cat-top">
+                    <span class="cat-name">🚗 مواصلات</span>
+                    <span class="cat-meta">2 عملية</span>
+                </div>
+                <div class="cat-bar-bg">
+                    <div class="cat-bar-fill" style="width:3%;background:#DDA0DD;"></div>
+                </div>
+                <div class="cat-bottom">
+                    <span class="cat-amt">19.00 ر.س</span>
+                    <span class="cat-pct">0.7%</span>
+                </div>
+            </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📅 الإنفاق اليومي</div>
+        <div class="chart-wrap"><canvas id="sDaily"></canvas></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">🏪 أكثر المتاجر</div>
+        <div class="m-item">
+                <span class="m-rank">1</span>
+                <div class="m-info"><div class="m-name">RAWAAT AL AMAAL</div><div class="m-cat">41 عملية · 🛒 بقالة ومتاجر</div></div>
+                <span class="m-amt">1,007.50<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">2</span>
+                <div class="m-info"><div class="m-name">Meedli rasour</div><div class="m-cat">9 عملية · 🏪 متاجر أخرى</div></div>
+                <span class="m-amt">872.02<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">3</span>
+                <div class="m-info"><div class="m-name">Mohammed Zuhair</div><div class="m-cat">62 عملية · 🍽️ مطاعم وأكل</div></div>
+                <span class="m-amt">790.00<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">4</span>
+                <div class="m-info"><div class="m-name">The Visitor</div><div class="m-cat">1 عملية · 🏪 متاجر أخرى</div></div>
+                <span class="m-amt">306.00<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">5</span>
+                <div class="m-info"><div class="m-name">ADWAA ALREEF FO</div><div class="m-cat">5 عملية · 🛒 بقالة ومتاجر</div></div>
+                <span class="m-amt">302.57<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">6</span>
+                <div class="m-info"><div class="m-name">STC Bank CITY:0000682016SAM MCC-6540 ﺖﻧﺮﺘﻧﺍ ﺀﺍﺮﺷ</div><div class="m-cat">1 عملية · 📱 فواتير واتصالات</div></div>
+                <span class="m-amt">300.00<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">7</span>
+                <div class="m-info"><div class="m-name">FAMILY DISCOUNT</div><div class="m-cat">2 عملية · 🏪 متاجر أخرى</div></div>
+                <span class="m-amt">241.36<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">8</span>
+                <div class="m-info"><div class="m-name">AlSaqr AlHazzaz</div><div class="m-cat">4 عملية · 🛒 بقالة ومتاجر</div></div>
+                <span class="m-amt">215.03<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">9</span>
+                <div class="m-info"><div class="m-name">noon CITY:0000682016SAM ﺖﻧﺮﺘﻧﻹﺍ ﺮﺒﻋ ﺾﻳﻮﻔﺘﻠﻟ ﻲﺋﺎﻬﻧ ﻢﺼﺧ</div><div class="m-cat">1 عملية · 🛒 تسوق أونلاين</div></div>
+                <span class="m-amt">203.79<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">10</span>
+                <div class="m-info"><div class="m-name">NUSANTARA MKH</div><div class="m-cat">1 عملية · 🍽️ مطاعم وأكل</div></div>
+                <span class="m-amt">176.00<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">11</span>
+                <div class="m-info"><div class="m-name">FARM SUPERSTORE</div><div class="m-cat">1 عملية · 🛒 بقالة ومتاجر</div></div>
+                <span class="m-amt">174.59<small> ر.س</small></span>
+            </div><div class="m-item">
+                <span class="m-rank">12</span>
+                <div class="m-info"><div class="m-name">lulu market CITY:0000682016SAM</div><div class="m-cat">1 عملية · 🛒 بقالة ومتاجر</div></div>
+                <span class="m-amt">159.15<small> ر.س</small></span>
+            </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📋 جميع العمليات (265)</div>
+        <input class="search-box" type="text" placeholder="🔍 بحث..." oninput="filterTbl('sTbl',this.value)">
+        <div class="tbl-wrap">
+            <table id="sTbl">
+                <thead><tr><th>التاريخ</th><th>الوصف</th><th>المبلغ</th><th>الرصيد</th></tr></thead>
+                <tbody><tr class="tx-exp">
+                <td class="td-date">2026/09/05</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-11.50</td>
+                <td class="td-bal">209.87</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/04</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-34.50</td>
+                <td class="td-bal">221.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">riyadh bu CITY:0000682016SAM 62168 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">255.87</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">Al Basha Chicke</td>
+                <td class="td-amt exp">-27.00</td>
+                <td class="td-bal">259.87</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">Khalid Ali Hass</td>
+                <td class="td-amt exp">-25.00</td>
+                <td class="td-bal">286.87</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/03</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-16.50</td>
+                <td class="td-bal">311.87</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-27.00</td>
+                <td class="td-bal">478.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">riyadh bu CITY:0000682016SAM 60818 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">605.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">riyadh bu CITY:0000682016SAM 62362 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">609.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">kawtar alarab a</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">613.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">riyadh m CITY:0000682016SAM 170634 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">622.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">LAYALE BASMAH C</td>
+                <td class="td-amt exp">-2.00</td>
+                <td class="td-bal">626.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">LAYALE BASMAH C</td>
+                <td class="td-amt exp">-38.00</td>
+                <td class="td-bal">628.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">riyadh m CITY:0000682016SAM 170726 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">666.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">riyadh me CITY:0000682016SAM 70301 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">670.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">CROI CITY:0000682016SAM MCC-</td>
+                <td class="td-amt exp">-36.00</td>
+                <td class="td-bal">674.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-5.00</td>
+                <td class="td-bal">710.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">KOTHER ALARB CO</td>
+                <td class="td-amt exp">-3.00</td>
+                <td class="td-bal">715.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">Meedli rasour</td>
+                <td class="td-amt exp">-29.90</td>
+                <td class="td-bal">718.37</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/02</td>
+                <td class="td-desc">riyadh bu CITY:0000682016SAM 35576 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-10.00</td>
+                <td class="td-bal">748.27</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/01</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-4.50</td>
+                <td class="td-bal">858.27</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/01</td>
+                <td class="td-desc">kawtar alarab a</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">862.77</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/01</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-5.50</td>
+                <td class="td-bal">871.77</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/09/01</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-6.50</td>
+                <td class="td-bal">877.27</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/31</td>
+                <td class="td-desc">riyadh bu CITY:0000682016SAM 63898 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">883.77</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/31</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-2.00</td>
+                <td class="td-bal">887.77</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/31</td>
+                <td class="td-desc">riyadh bu CITY:0000682016SAM 63633 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">889.77</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/31</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-6.50</td>
+                <td class="td-bal">893.77</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/30</td>
+                <td class="td-desc">Meedli rasour</td>
+                <td class="td-amt exp">-145.58</td>
+                <td class="td-bal">900.27</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/30</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-31.50</td>
+                <td class="td-bal">1,045.85</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/30</td>
+                <td class="td-desc">Bowling c 10074</td>
+                <td class="td-amt exp">-5.00</td>
+                <td class="td-bal">1,077.35</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/30</td>
+                <td class="td-desc">AlSaqr AlHazzaz</td>
+                <td class="td-amt exp">-35.77</td>
+                <td class="td-bal">1,082.35</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/30</td>
+                <td class="td-desc">riyadh bu CITY:0000682016SAM 60507 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">1,118.12</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/30</td>
+                <td class="td-desc">KOTHER ALARB CO</td>
+                <td class="td-amt exp">-8.00</td>
+                <td class="td-bal">1,122.12</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/30</td>
+                <td class="td-desc">riyadh bu CITY:0000682016SAM 63137 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">1,330.12</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/30</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-5.50</td>
+                <td class="td-bal">1,334.12</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/29</td>
+                <td class="td-desc">Khalid Ali Hass</td>
+                <td class="td-amt exp">-15.00</td>
+                <td class="td-bal">1,339.62</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/29</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-19.00</td>
+                <td class="td-bal">1,354.62</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/29</td>
+                <td class="td-desc">ADWAA ALREEF FO</td>
+                <td class="td-amt exp">-41.00</td>
+                <td class="td-bal">1,373.62</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/29</td>
+                <td class="td-desc">Alwashim Poultr</td>
+                <td class="td-amt exp">-6.50</td>
+                <td class="td-bal">1,414.62</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/29</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-54.00</td>
+                <td class="td-bal">1,421.12</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/28</td>
+                <td class="td-desc">Joy Mart CITY:0000682016SAM</td>
+                <td class="td-amt exp">-34.50</td>
+                <td class="td-bal">1,475.12</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/28</td>
+                <td class="td-desc">Joy Mart CITY:0000682016SAM</td>
+                <td class="td-amt exp">-18.70</td>
+                <td class="td-bal">1,509.62</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/28</td>
+                <td class="td-desc">FARM SUPERSTORE</td>
+                <td class="td-amt exp">-174.59</td>
+                <td class="td-bal">1,528.32</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/28</td>
+                <td class="td-desc">Almasa Algharbi</td>
+                <td class="td-amt exp">-15.00</td>
+                <td class="td-bal">1,702.91</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/28</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-2.00</td>
+                <td class="td-bal">1,717.91</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/28</td>
+                <td class="td-desc">KOTHER ALARB CO</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">1,719.91</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/27</td>
+                <td class="td-desc">KEEF ZAMAN</td>
+                <td class="td-amt exp">-5.00</td>
+                <td class="td-bal">1,728.91</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/27</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-27.00</td>
+                <td class="td-bal">1,733.91</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/27</td>
+                <td class="td-desc">mataeim ramz al</td>
+                <td class="td-amt exp">-12.00</td>
+                <td class="td-bal">1,760.91</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/27</td>
+                <td class="td-desc">Ali Matar Bin A</td>
+                <td class="td-amt exp">-2.00</td>
+                <td class="td-bal">1,772.91</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/27</td>
+                <td class="td-desc">AlSaqr AlHazzaz</td>
+                <td class="td-amt exp">-32.26</td>
+                <td class="td-bal">1,774.91</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/27</td>
+                <td class="td-desc">KOTHER ALARB CO</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">2,007.17</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/26</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-3.50</td>
+                <td class="td-bal">2,016.17</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/25</td>
+                <td class="td-desc">Al Madina Hyper</td>
+                <td class="td-amt exp">-13.95</td>
+                <td class="td-bal">2,019.67</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/25</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-5.00</td>
+                <td class="td-bal">2,033.62</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/25</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-40.00</td>
+                <td class="td-bal">2,038.62</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/25</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-11.00</td>
+                <td class="td-bal">2,078.62</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/24</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-5.00</td>
+                <td class="td-bal">2,089.62</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/24</td>
+                <td class="td-desc">Meedli rasour</td>
+                <td class="td-amt exp">-105.57</td>
+                <td class="td-bal">2,094.62</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/24</td>
+                <td class="td-desc">riyadh bu CITY:0000682016SAM 62183 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">2,200.19</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/24</td>
+                <td class="td-desc">lulu market CITY:0000682016SAM</td>
+                <td class="td-amt exp">-159.15</td>
+                <td class="td-bal">2,204.19</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/24</td>
+                <td class="td-desc">mataeim ramz al</td>
+                <td class="td-amt exp">-19.00</td>
+                <td class="td-bal">2,363.34</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-16.00</td>
+                <td class="td-bal">2,582.34</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">Meedli rasour</td>
+                <td class="td-amt exp">-103.25</td>
+                <td class="td-bal">2,598.34</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">SAQAR HAZAZ EST</td>
+                <td class="td-amt exp">-29.57</td>
+                <td class="td-bal">2,701.59</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">ADWAA ALREEF FO</td>
+                <td class="td-amt exp">-53.80</td>
+                <td class="td-bal">2,731.16</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">2,784.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-4.50</td>
+                <td class="td-bal">2,793.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">2,798.46</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/23</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">2,802.46</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/22</td>
+                <td class="td-desc">KOTHER ALARB CO</td>
+                <td class="td-amt exp">-18.00</td>
+                <td class="td-bal">2,811.46</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/22</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-15.50</td>
+                <td class="td-bal">2,829.46</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/22</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">2,844.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/21</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">2,864.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/21</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">2,884.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/21</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-2.00</td>
+                <td class="td-bal">2,904.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/21</td>
+                <td class="td-desc">mataeim ramz al</td>
+                <td class="td-amt exp">-16.00</td>
+                <td class="td-bal">2,906.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/20</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-25.00</td>
+                <td class="td-bal">3,222.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/20</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-9.50</td>
+                <td class="td-bal">3,247.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/19</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-5.50</td>
+                <td class="td-bal">3,307.46</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/19</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-14.00</td>
+                <td class="td-bal">3,312.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/18</td>
+                <td class="td-desc">KEEF ZAMAN</td>
+                <td class="td-amt exp">-10.00</td>
+                <td class="td-bal">3,326.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/18</td>
+                <td class="td-desc">Alrahden compan</td>
+                <td class="td-amt exp">-8.00</td>
+                <td class="td-bal">3,386.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/18</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-15.50</td>
+                <td class="td-bal">3,394.96</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/17</td>
+                <td class="td-desc">AlSaqr AlHazzaz</td>
+                <td class="td-amt exp">-64.00</td>
+                <td class="td-bal">3,410.46</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/17</td>
+                <td class="td-desc">ADWAA ALREEF FO</td>
+                <td class="td-amt exp">-38.77</td>
+                <td class="td-bal">3,474.46</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/17</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-3.50</td>
+                <td class="td-bal">3,513.23</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/17</td>
+                <td class="td-desc">Meedli rasour</td>
+                <td class="td-amt exp">-29.90</td>
+                <td class="td-bal">3,516.73</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/17</td>
+                <td class="td-desc">Meedli rasour</td>
+                <td class="td-amt exp">-349.35</td>
+                <td class="td-bal">3,546.63</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">KEEF ZAMAN</td>
+                <td class="td-amt exp">-15.00</td>
+                <td class="td-bal">3,895.98</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-10.00</td>
+                <td class="td-bal">3,910.98</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">Mohammed Abdu A</td>
+                <td class="td-amt exp">-3.00</td>
+                <td class="td-bal">3,920.98</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">Mohammed Abdu A</td>
+                <td class="td-amt exp">-13.00</td>
+                <td class="td-bal">3,923.98</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">Establishment a</td>
+                <td class="td-amt exp">-125.00</td>
+                <td class="td-bal">3,936.98</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">KEEF ZAMAN</td>
+                <td class="td-amt exp">-10.00</td>
+                <td class="td-bal">4,061.98</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-18.00</td>
+                <td class="td-bal">4,071.98</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-2.50</td>
+                <td class="td-bal">4,089.98</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">KOTHER ALARB CO</td>
+                <td class="td-amt exp">-8.00</td>
+                <td class="td-bal">4,092.48</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-30.00</td>
+                <td class="td-bal">4,150.48</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/16</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-7.00</td>
+                <td class="td-bal">4,180.48</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/15</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-25.00</td>
+                <td class="td-bal">4,187.48</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/15</td>
+                <td class="td-desc">Khalid Ali Hass</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">4,212.48</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/15</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-6.50</td>
+                <td class="td-bal">4,232.48</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/15</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-1.50</td>
+                <td class="td-bal">4,238.98</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/15</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-26.00</td>
+                <td class="td-bal">4,240.48</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/14</td>
+                <td class="td-desc">FAMILY DISCOUNT</td>
+                <td class="td-amt exp">-55.00</td>
+                <td class="td-bal">4,266.48</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/14</td>
+                <td class="td-desc">FAMILY DISCOUNT</td>
+                <td class="td-amt exp">-186.36</td>
+                <td class="td-bal">4,321.48</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/14</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-3.50</td>
+                <td class="td-bal">4,507.84</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/14</td>
+                <td class="td-desc">mataeim ramz al</td>
+                <td class="td-amt exp">-24.00</td>
+                <td class="td-bal">4,511.34</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/14</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-15.00</td>
+                <td class="td-bal">4,585.34</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/14</td>
+                <td class="td-desc">mataeim ramz al</td>
+                <td class="td-amt exp">-14.00</td>
+                <td class="td-bal">4,600.34</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/14</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-12.50</td>
+                <td class="td-bal">4,614.34</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/14</td>
+                <td class="td-desc">KOTHER ALARB CO</td>
+                <td class="td-amt exp">-2.00</td>
+                <td class="td-bal">4,626.84</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-3.50</td>
+                <td class="td-bal">6,028.84</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/13</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-16.00</td>
+                <td class="td-bal">6,032.34</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/12</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">6,048.34</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/12</td>
+                <td class="td-desc">KOTHER ALARB CO</td>
+                <td class="td-amt exp">-8.00</td>
+                <td class="td-bal">6,052.34</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/12</td>
+                <td class="td-desc">Meedli rasour</td>
+                <td class="td-amt exp">-67.19</td>
+                <td class="td-bal">6,060.34</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/12</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">6,127.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/11</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-26.00</td>
+                <td class="td-bal">6,197.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/11</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-7.00</td>
+                <td class="td-bal">6,223.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/11</td>
+                <td class="td-desc">Lebanon Flowers</td>
+                <td class="td-amt exp">-26.00</td>
+                <td class="td-bal">6,230.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/10</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-40.00</td>
+                <td class="td-bal">6,256.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/10</td>
+                <td class="td-desc">ADWAA ALREEF FO</td>
+                <td class="td-amt exp">-81.00</td>
+                <td class="td-bal">6,296.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/10</td>
+                <td class="td-desc">Wonders of crea</td>
+                <td class="td-amt exp">-15.00</td>
+                <td class="td-bal">6,377.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/10</td>
+                <td class="td-desc">Company ARAISI</td>
+                <td class="td-amt exp">-8.00</td>
+                <td class="td-bal">6,392.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/09</td>
+                <td class="td-desc">LAYALE BASMAH C</td>
+                <td class="td-amt exp">-28.00</td>
+                <td class="td-bal">6,400.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/09</td>
+                <td class="td-desc">Ruat AlMuhtarif</td>
+                <td class="td-amt exp">-5.00</td>
+                <td class="td-bal">6,428.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/09</td>
+                <td class="td-desc">Dar Al Moda Tra</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">6,433.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/09</td>
+                <td class="td-desc">MAATHAR HOUSE R</td>
+                <td class="td-amt exp">-2.00</td>
+                <td class="td-bal">6,453.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/08</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-10.00</td>
+                <td class="td-bal">6,505.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/08</td>
+                <td class="td-desc">mataeim ramz al</td>
+                <td class="td-amt exp">-46.00</td>
+                <td class="td-bal">6,515.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/08</td>
+                <td class="td-desc">Khalid Ali Hass</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">6,561.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/08</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-10.00</td>
+                <td class="td-bal">6,565.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/08</td>
+                <td class="td-desc">WADI AL GHORO</td>
+                <td class="td-amt exp">-3.00</td>
+                <td class="td-bal">6,575.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/08</td>
+                <td class="td-desc">Zohour Lebanon</td>
+                <td class="td-amt exp">-21.00</td>
+                <td class="td-bal">6,578.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/08</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-12.00</td>
+                <td class="td-bal">6,599.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/08</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-10.50</td>
+                <td class="td-bal">6,611.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/08</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-57.50</td>
+                <td class="td-bal">6,622.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/07</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-7.50</td>
+                <td class="td-bal">6,679.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/06</td>
+                <td class="td-desc">Khalid Ali Hass</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">6,687.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/06</td>
+                <td class="td-desc">riyadh bu CITY:0000682016SAM 62338 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">6,696.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/06</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-19.50</td>
+                <td class="td-bal">6,700.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/06</td>
+                <td class="td-desc">Khalid Ali Hass</td>
+                <td class="td-amt exp">-11.00</td>
+                <td class="td-bal">6,719.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/06</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">6,730.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/06</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-12.50</td>
+                <td class="td-bal">6,739.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/05</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-2.00</td>
+                <td class="td-bal">6,802.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/05</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-26.00</td>
+                <td class="td-bal">6,804.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/05</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-16.00</td>
+                <td class="td-bal">6,880.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/04</td>
+                <td class="td-desc">KEEF ZAMAN</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">6,896.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/04</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-6.50</td>
+                <td class="td-bal">6,916.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/04</td>
+                <td class="td-desc">KOTHER ALARB CO</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">6,922.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/04</td>
+                <td class="td-desc">Nasser Mohammed</td>
+                <td class="td-amt exp">-1.00</td>
+                <td class="td-bal">6,931.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/04</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-5.50</td>
+                <td class="td-bal">6,932.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/03</td>
+                <td class="td-desc">Ali Matar Bin A</td>
+                <td class="td-amt exp">-2.00</td>
+                <td class="td-bal">6,938.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/03</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-5.00</td>
+                <td class="td-bal">6,940.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/03</td>
+                <td class="td-desc">Lebanon Flowers</td>
+                <td class="td-amt exp">-21.00</td>
+                <td class="td-bal">6,945.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/02</td>
+                <td class="td-desc">riyadh bu CITY:0000682016SAM 60629 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">6,966.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/02</td>
+                <td class="td-desc">Khalid Ali Hass</td>
+                <td class="td-amt exp">-7.00</td>
+                <td class="td-bal">6,970.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/02</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-17.00</td>
+                <td class="td-bal">6,977.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/02</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-34.50</td>
+                <td class="td-bal">6,994.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/02</td>
+                <td class="td-desc">KOTHER ALARB CO</td>
+                <td class="td-amt exp">-1.00</td>
+                <td class="td-bal">7,028.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/02</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-6.00</td>
+                <td class="td-bal">7,029.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/02</td>
+                <td class="td-desc">KOTHER ALARB CO</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">7,035.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/01</td>
+                <td class="td-desc">Khalid Ali Hass</td>
+                <td class="td-amt exp">-10.00</td>
+                <td class="td-bal">7,044.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/01</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-6.50</td>
+                <td class="td-bal">7,054.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/01</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-12.00</td>
+                <td class="td-bal">7,061.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/01</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-34.50</td>
+                <td class="td-bal">7,073.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/01</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-23.00</td>
+                <td class="td-bal">7,107.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/08/01</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-22.00</td>
+                <td class="td-bal">7,130.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/31</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-34.50</td>
+                <td class="td-bal">7,152.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/31</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-42.00</td>
+                <td class="td-bal">7,187.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/29</td>
+                <td class="td-desc">AlSaqr AlHazzaz</td>
+                <td class="td-amt exp">-83.00</td>
+                <td class="td-bal">7,229.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/29</td>
+                <td class="td-desc">ALQIMMAH ALSHAM</td>
+                <td class="td-amt exp">-9.00</td>
+                <td class="td-bal">7,312.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/29</td>
+                <td class="td-desc">Khalid Ali Hass</td>
+                <td class="td-amt exp">-13.00</td>
+                <td class="td-bal">7,321.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/29</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-9.50</td>
+                <td class="td-bal">7,334.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/29</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-34.50</td>
+                <td class="td-bal">7,343.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/29</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-18.00</td>
+                <td class="td-bal">7,378.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/29</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-34.50</td>
+                <td class="td-bal">7,396.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/28</td>
+                <td class="td-desc">Shykht Nasir Al CITY:0000682016SAM ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-7.00</td>
+                <td class="td-bal">7,430.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/28</td>
+                <td class="td-desc">ADWAA ALREEF FO</td>
+                <td class="td-amt exp">-88.00</td>
+                <td class="td-bal">7,437.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/28</td>
+                <td class="td-desc">Huda Grocery</td>
+                <td class="td-amt exp">-17.00</td>
+                <td class="td-bal">7,525.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/28</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-14.50</td>
+                <td class="td-bal">7,542.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/28</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-34.50</td>
+                <td class="td-bal">7,557.03</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/27</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-17.00</td>
+                <td class="td-bal">7,591.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/27</td>
+                <td class="td-desc">Meedli rasour</td>
+                <td class="td-amt exp">-18.98</td>
+                <td class="td-bal">7,608.53</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/27</td>
+                <td class="td-desc">Meedli rasour</td>
+                <td class="td-amt exp">-22.30</td>
+                <td class="td-bal">7,627.51</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/27</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-30.00</td>
+                <td class="td-bal">7,649.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/27</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-6.50</td>
+                <td class="td-bal">7,679.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/27</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-34.50</td>
+                <td class="td-bal">7,686.31</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/27</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-15.00</td>
+                <td class="td-bal">7,720.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/27</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-53.50</td>
+                <td class="td-bal">7,735.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/26</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-2.50</td>
+                <td class="td-bal">7,789.31</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/26</td>
+                <td class="td-desc">Wonders of crea</td>
+                <td class="td-amt exp">-25.00</td>
+                <td class="td-bal">7,791.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/25</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-3.00</td>
+                <td class="td-bal">7,816.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/25</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-34.50</td>
+                <td class="td-bal">7,819.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/24</td>
+                <td class="td-desc">KEEF ZAMAN</td>
+                <td class="td-amt exp">-10.00</td>
+                <td class="td-bal">7,854.31</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/24</td>
+                <td class="td-desc">KEEF ZAMAN</td>
+                <td class="td-amt exp">-30.00</td>
+                <td class="td-bal">7,864.31</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/24</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-34.50</td>
+                <td class="td-bal">7,894.31</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/24</td>
+                <td class="td-desc">JUICE FETAMEN J</td>
+                <td class="td-amt exp">-39.00</td>
+                <td class="td-bal">7,928.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/24</td>
+                <td class="td-desc">riyadh bus CITY:0000682016SAM MCC- ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">7,967.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/24</td>
+                <td class="td-desc">ALSMAH CO</td>
+                <td class="td-amt exp">-40.00</td>
+                <td class="td-bal">7,971.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/24</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-1.00</td>
+                <td class="td-bal">8,011.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/24</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-34.50</td>
+                <td class="td-bal">8,012.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/24</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-34.50</td>
+                <td class="td-bal">8,047.31</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/24</td>
+                <td class="td-desc">riyadh m CITY:0000682016SAM 170658 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">8,081.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">EXPRESS FOOD CO</td>
+                <td class="td-amt exp">-15.50</td>
+                <td class="td-bal">8,085.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">NUKHBAT QURTOBA</td>
+                <td class="td-amt exp">-6.00</td>
+                <td class="td-bal">8,101.31</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">EXPRESS FOOD CO</td>
+                <td class="td-amt exp">-40.50</td>
+                <td class="td-bal">8,107.31</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">BurgerKingLuluA</td>
+                <td class="td-amt exp">-5.00</td>
+                <td class="td-bal">8,147.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">SERVTECH</td>
+                <td class="td-amt exp">-35.00</td>
+                <td class="td-bal">8,152.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">SERVTECH</td>
+                <td class="td-amt exp">-34.00</td>
+                <td class="td-bal">8,187.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">riyadh me CITY:0000682016SAM 81108 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-10.00</td>
+                <td class="td-bal">8,221.81</td>
+            </tr><tr class="tx-inc">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">ﻭ ﻞﻫﻻﺍ ﻰﻟﺍ ﻉﺍﺪﻳﺍ CITY: RIYADH ﻲﻠﻫﻷﺍ ﻲﻟﺁ ﻑﺍﺮﺻ</td>
+                <td class="td-amt inc">+1,000.00</td>
+                <td class="td-bal">8,931.81</td>
+            </tr><tr class="tx-inc">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">ﻭ ﻞﻫﻻﺍ ﻰﻟﺍ ﻉﺍﺪﻳﺍ CITY: RIYADH ﻲﻠﻫﻷﺍ ﻲﻟﺁ ﻑﺍﺮﺻ</td>
+                <td class="td-amt inc">+500.00</td>
+                <td class="td-bal">8,931.81</td>
+            </tr><tr class="tx-inc">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">ﻭ ﻞﻫﻻﺍ ﻰﻟﺍ ﻉﺍﺪﻳﺍ CITY: RIYADH ﻲﻠﻫﻷﺍ ﻲﻟﺁ ﻑﺍﺮﺻ</td>
+                <td class="td-amt inc">+1,500.00</td>
+                <td class="td-bal">8,431.81</td>
+            </tr><tr class="tx-inc">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">ﻭ ﻞﻫﻻﺍ ﻰﻟﺍ ﻉﺍﺪﻳﺍ CITY: RIYADH ﻲﻠﻫﻷﺍ ﻲﻟﺁ ﻑﺍﺮﺻ</td>
+                <td class="td-amt inc">+1,000.00</td>
+                <td class="td-bal">6,931.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">5,931.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">JUICE FETAMEN J</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">5,951.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">SHMAH JABER ALA</td>
+                <td class="td-amt exp">-12.00</td>
+                <td class="td-bal">5,971.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/23</td>
+                <td class="td-desc">AL MAEDA AL BUK</td>
+                <td class="td-amt exp">-52.00</td>
+                <td class="td-bal">5,983.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">Khalid Ali Hass</td>
+                <td class="td-amt exp">-15.00</td>
+                <td class="td-bal">6,035.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">RAWAAT AL AMAAL</td>
+                <td class="td-amt exp">-45.00</td>
+                <td class="td-bal">6,050.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">KUWAIS INTERNAT</td>
+                <td class="td-amt exp">-6.00</td>
+                <td class="td-bal">6,095.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">SAKHER Co CITY:0000682016SAM</td>
+                <td class="td-amt exp">-30.00</td>
+                <td class="td-bal">6,101.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">MONA MOHAMMED A CITY:0000682016SAM ﻊﻴﺑ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-21.00</td>
+                <td class="td-bal">6,131.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">ENMA AL AMAL FO</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">6,152.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">Saleha Ali Abot</td>
+                <td class="td-amt exp">-80.00</td>
+                <td class="td-bal">6,172.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">Establishment Z</td>
+                <td class="td-amt exp">-30.00</td>
+                <td class="td-bal">6,252.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">Nasra Mousa Awa</td>
+                <td class="td-amt exp">-100.00</td>
+                <td class="td-bal">6,282.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">Establishment Z</td>
+                <td class="td-amt exp">-15.00</td>
+                <td class="td-bal">6,382.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">Salihah Ali Abu</td>
+                <td class="td-amt exp">-75.00</td>
+                <td class="td-bal">6,397.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">Blaban CITY:0000682016SAM</td>
+                <td class="td-amt exp">-46.00</td>
+                <td class="td-bal">6,472.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">MOHMMED ALAJMAI</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">6,518.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">Danube Khaldyah</td>
+                <td class="td-amt exp">-30.00</td>
+                <td class="td-bal">6,538.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">JUICE FETAMEN J</td>
+                <td class="td-amt exp">-24.00</td>
+                <td class="td-bal">6,568.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">Khalid Ali Hass</td>
+                <td class="td-amt exp">-10.00</td>
+                <td class="td-bal">6,592.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">NAFT Services C</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">6,602.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/22</td>
+                <td class="td-desc">NMC2050</td>
+                <td class="td-amt exp">-35.53</td>
+                <td class="td-bal">6,622.81</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/21</td>
+                <td class="td-desc">ABRAJ HYPER MAR</td>
+                <td class="td-amt exp">-24.95</td>
+                <td class="td-bal">6,658.34</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/21</td>
+                <td class="td-desc">FAYROUZ STORES</td>
+                <td class="td-amt exp">-30.00</td>
+                <td class="td-bal">6,683.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/21</td>
+                <td class="td-desc">riyadh bu CITY:0000682016SAM 62076 ﻊﻴﺒﻟﺍ ﻁﺎﻘﻧ ﺮﺒﻋ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-4.00</td>
+                <td class="td-bal">6,713.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/21</td>
+                <td class="td-desc">FAYROUZ STORES</td>
+                <td class="td-amt exp">-15.00</td>
+                <td class="td-bal">6,717.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/21</td>
+                <td class="td-desc">mwssh ranya mst</td>
+                <td class="td-amt exp">-13.00</td>
+                <td class="td-bal">6,732.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/21</td>
+                <td class="td-desc">Abdul Aziz Muta</td>
+                <td class="td-amt exp">-24.00</td>
+                <td class="td-bal">6,745.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/21</td>
+                <td class="td-desc">KAYAN INTERNATI</td>
+                <td class="td-amt exp">-30.00</td>
+                <td class="td-bal">6,769.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/21</td>
+                <td class="td-desc">MARYAM ALI ALYA</td>
+                <td class="td-amt exp">-25.00</td>
+                <td class="td-bal">6,799.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/21</td>
+                <td class="td-desc">The Visitor</td>
+                <td class="td-amt exp">-306.00</td>
+                <td class="td-bal">6,824.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/21</td>
+                <td class="td-desc">AL ATLAL GRILLS</td>
+                <td class="td-amt exp">-130.00</td>
+                <td class="td-bal">7,130.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/20</td>
+                <td class="td-desc">ALMORKI CENTER</td>
+                <td class="td-amt exp">-3.00</td>
+                <td class="td-bal">7,260.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/20</td>
+                <td class="td-desc">ALMORKI SHOPPIN</td>
+                <td class="td-amt exp">-8.00</td>
+                <td class="td-bal">7,263.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/20</td>
+                <td class="td-desc">Shahad Omair Bi</td>
+                <td class="td-amt exp">-8.00</td>
+                <td class="td-bal">7,271.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/20</td>
+                <td class="td-desc">Shahad Omair Bi</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">7,279.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/20</td>
+                <td class="td-desc">SSP Arabia Spar</td>
+                <td class="td-amt exp">-20.00</td>
+                <td class="td-bal">7,299.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/20</td>
+                <td class="td-desc">Kayan Marketing</td>
+                <td class="td-amt exp">-6.00</td>
+                <td class="td-bal">7,319.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/20</td>
+                <td class="td-desc">KAYAN INTERNATI</td>
+                <td class="td-amt exp">-30.00</td>
+                <td class="td-bal">7,325.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/20</td>
+                <td class="td-desc">STC Bank CITY:0000682016SAM MCC-6540 ﺖﻧﺮﺘﻧﺍ ﺀﺍﺮﺷ</td>
+                <td class="td-amt exp">-300.00</td>
+                <td class="td-bal">7,355.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/20</td>
+                <td class="td-desc">Mohammed Zuhair</td>
+                <td class="td-amt exp">-54.50</td>
+                <td class="td-bal">7,655.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/19</td>
+                <td class="td-desc">Ali Matar Bin A</td>
+                <td class="td-amt exp">-5.00</td>
+                <td class="td-bal">7,709.79</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/19</td>
+                <td class="td-desc">SAQAR HAZAZ EST</td>
+                <td class="td-amt exp">-15.00</td>
+                <td class="td-bal">7,714.79</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/19</td>
+                <td class="td-desc">NUSANTARA MKH</td>
+                <td class="td-amt exp">-176.00</td>
+                <td class="td-bal">7,804.79</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/07/03</td>
+                <td class="td-desc">Thimarna co</td>
+                <td class="td-amt exp">-5.50</td>
+                <td class="td-bal">7,980.79</td>
+            </tr><tr class="tx-inc">
+                <td class="td-date">2026/06/29</td>
+                <td class="td-desc">CITY:Jeddah ﺓﺩﺭﺍﻭ ﺔﻴﻠﺤﻣ ﺔﻳﺭﻮﻓ ﺔﻟﺍﻮﺣ</td>
+                <td class="td-amt inc">+3,400.00</td>
+                <td class="td-bal">7,986.29</td>
+            </tr><tr class="tx-exp">
+                <td class="td-date">2026/06/28</td>
+                <td class="td-desc">noon CITY:0000682016SAM ﺖﻧﺮﺘﻧﻹﺍ ﺮﺒﻋ ﺾﻳﻮﻔﺘﻠﻟ ﻲﺋﺎﻬﻧ ﻢﺼﺧ</td>
+                <td class="td-amt exp">-203.79</td>
+                <td class="td-bal">4,586.29</td>
+            </tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== COMPARE ==================== -->
+<div id="cmp" class="tab-panel">
+
+    <div class="cmp-grid">
+        <div class="cmp-card rajhi">
+            <div class="bank-name">🏦 الراجحي</div>
+            <div class="cmp-item"><div class="cmp-val" style="color:var(--red)">15,340</div><div class="cmp-lbl">مصروفات</div></div>
+            <div class="cmp-item"><div class="cmp-val" style="color:var(--green)">9,538</div><div class="cmp-lbl">إيداعات</div></div>
+            <div class="cmp-item"><div class="cmp-val">122</div><div class="cmp-lbl">عملية</div></div>
+            <div class="cmp-item"><div class="cmp-val">129</div><div class="cmp-lbl">متوسط مصروف</div></div>
+        </div>
+        <div class="cmp-card snb">
+            <div class="bank-name">🏦 الأهلي</div>
+            <div class="cmp-item"><div class="cmp-val" style="color:var(--red)">7,155</div><div class="cmp-lbl">مصروفات</div></div>
+            <div class="cmp-item"><div class="cmp-val" style="color:var(--green)">7,400</div><div class="cmp-lbl">إيداعات</div></div>
+            <div class="cmp-item"><div class="cmp-val">265</div><div class="cmp-lbl">عملية</div></div>
+            <div class="cmp-item"><div class="cmp-val">28</div><div class="cmp-lbl">متوسط مصروف</div></div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+        <div class="card-title">📊 مقارنة المصروفات</div>
+        <div class="chart-wrap" style="height:300px;"><canvas id="cmpBar"></canvas></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📊 مقارنة الفئات</div>
+        <div class="chart-wrap" style="height:440px;"><canvas id="cmpCat"></canvas></div>
+    </div>
+</div>
+
+</div>
+
+<footer>تم إنشاء التقرير تلقائياً · 2026/09/08 20:14</footer>
+
+<script>
+// Tabs
+document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        document.getElementById(t.dataset.tab).classList.add('active');
+    });
+});
+
+// Table filter
+function filterTbl(id, q) {
+    q = q.toLowerCase();
+    document.querySelectorAll('#'+id+' tbody tr').forEach(r => {
+        r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
+
+// Chart defaults
+Chart.defaults.color = '#9898B0';
+Chart.defaults.font.family = 'Tajawal';
+const cPalette = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F','#BB8FCE','#85C1E9','#F1948A','#82E0AA'];
+
+// Rajhi Pie
+new Chart(document.getElementById('rPie'), {
+    type: 'doughnut',
+    data: {
+        labels: ["🏧 سحب نقدي", "💸 تحويلات", "🛒 تسوق أونلاين", "🏪 متاجر أخرى", "🛒 بقالة ومتاجر", "🍽️ مطاعم وأكل", "🛍️ تسوق", "📱 فواتير واتصالات", "🚗 مواصلات", "🏥 صحة وطبية", "💳 رسوم بنكية"],
+        datasets: [{ data: [5000.0, 4601.73, 1200.01, 1105.34, 1011.94, 866.5, 750.25, 501.98, 157.39, 143.75, 1.5], backgroundColor: cPalette, borderWidth: 0 }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '55%',
+        plugins: {
+            legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } }
+        }
+    }
+});
+
+// Rajhi Daily
+new Chart(document.getElementById('rDaily'), {
+    type: 'bar',
+    data: {
+        labels: ["2026/08/03", "2026/08/04", "2026/08/05", "2026/08/06", "2026/08/08", "2026/08/09", "2026/08/10", "2026/08/11", "2026/08/12", "2026/08/13", "2026/08/14", "2026/08/16", "2026/08/17", "2026/08/18", "2026/08/19", "2026/08/20", "2026/08/21", "2026/08/23", "2026/08/24", "2026/08/25", "2026/08/26", "2026/08/27", "2026/08/28", "2026/08/29", "2026/08/30", "2026/08/31", "2026/09/01", "2026/09/02", "2026/09/03"],
+        datasets: [{ data: [159.42, 4.0, 1101.5, 13.0, 94.5, 17.0, 1297.23, 64.0, 150.0, 150.49, 45.78, 276.7, 4.0, 18.0, 108.5, 481.51, 438.5, 51.29, 36.5, 479.33, 128.36, 74.9, 80.27, 21.0, 80.5, 81.83, 132.55, 48.5, 9701.23], backgroundColor: '#FF6B6B', borderRadius: 6 }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { font: { size: 8 }, maxRotation: 60 }, grid: { display: false } },
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+    }
+});
+
+// SNB Pie
+new Chart(document.getElementById('sPie'), {
+    type: 'doughnut',
+    data: {
+        labels: ["🏪 متاجر أخرى", "🛒 بقالة ومتاجر", "🍽️ مطاعم وأكل", "🛒 تسوق أونلاين", "🛍️ تسوق", "🚗 مواصلات"],
+        datasets: [{ data: [2811.86, 2341.56, 1459.0, 503.79, 20.0, 19.0], backgroundColor: cPalette, borderWidth: 0 }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '55%',
+        plugins: {
+            legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } }
+        }
+    }
+});
+
+// SNB Daily
+new Chart(document.getElementById('sDaily'), {
+    type: 'bar',
+    data: {
+        labels: ["2026/06/28", "2026/07/03", "2026/07/19", "2026/07/20", "2026/07/21", "2026/07/22", "2026/07/23", "2026/07/24", "2026/07/25", "2026/07/26", "2026/07/27", "2026/07/28", "2026/07/29", "2026/07/31", "2026/08/01", "2026/08/02", "2026/08/03", "2026/08/04", "2026/08/05", "2026/08/06", "2026/08/07", "2026/08/08", "2026/08/09", "2026/08/10", "2026/08/11", "2026/08/12", "2026/08/13", "2026/08/14", "2026/08/15", "2026/08/16", "2026/08/17", "2026/08/18", "2026/08/19", "2026/08/20", "2026/08/21", "2026/08/22", "2026/08/23", "2026/08/24", "2026/08/25", "2026/08/26", "2026/08/27", "2026/08/28", "2026/08/29", "2026/08/30", "2026/08/31", "2026/09/01", "2026/09/02", "2026/09/03", "2026/09/04", "2026/09/05"],
+        datasets: [{ data: [203.79, 5.5, 196.0, 449.5, 601.95, 622.53, 250.0, 231.5, 37.5, 27.5, 197.78, 161.0, 201.5, 76.5, 108.0, 78.5, 28.0, 42.0, 44.0, 65.0, 7.5, 174.0, 55.0, 144.0, 59.0, 99.19, 19.5, 312.36, 79.0, 241.5, 485.52, 33.5, 19.5, 34.5, 58.0, 53.5, 229.12, 292.72, 69.95, 3.5, 87.26, 253.79, 135.5, 239.35, 16.5, 25.5, 179.9, 72.5, 34.5, 11.5], backgroundColor: '#45B7D1', borderRadius: 6 }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { font: { size: 8 }, maxRotation: 60 }, grid: { display: false } },
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+    }
+});
+
+// Compare Bar
+new Chart(document.getElementById('cmpBar'), {
+    type: 'bar',
+    data: {
+        labels: ['المصروفات', 'الإيداعات', 'متوسط المصروف'],
+        datasets: [
+            { label: 'الراجحي', data: [15340,9538,129], backgroundColor: '#4ECDC4', borderRadius: 8 },
+            { label: 'الأهلي', data: [7155,7400,28], backgroundColor: '#45B7D1', borderRadius: 8 }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { font: { size: 13 } } } },
+        scales: {
+            x: { grid: { display: false } },
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+    }
+});
+
+// Compare Categories
+new Chart(document.getElementById('cmpCat'), {
+    type: 'bar',
+    data: {
+        labels: ["🍽️ مطاعم وأكل", "🏥 صحة وطبية", "🏧 سحب نقدي", "🏪 متاجر أخرى", "💳 رسوم بنكية", "💸 تحويلات", "📱 فواتير واتصالات", "🚗 مواصلات", "🛍️ تسوق", "🛒 بقالة ومتاجر", "🛒 تسوق أونلاين"],
+        datasets: [
+            { label: 'الراجحي', data: [866.5, 143.75, 5000.0, 1105.34, 1.5, 4601.73, 501.98, 157.39, 750.25, 1011.94, 1200.01], backgroundColor: 'rgba(78,205,196,0.7)', borderRadius: 4 },
+            { label: 'الأهلي', data: [1459.0, 0, 0, 2811.86, 0, 0, 0, 19.0, 20.0, 2341.56, 503.79], backgroundColor: 'rgba(69,183,209,0.7)', borderRadius: 4 }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: { legend: { labels: { font: { size: 12 } } } },
+        scales: {
+            x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+            y: { ticks: { font: { size: 10 } }, grid: { display: false } }
+        }
+    }
+});
+</script>
+</body>
+</html>
