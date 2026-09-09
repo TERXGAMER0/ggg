@@ -445,14 +445,12 @@ function mkBar(id, labels, data, color) {
 }
 
 // ============================================================
-// MONTH UTILS
+// MONTH & DATE UTILS
 // ============================================================
 const MONTH_NAMES = {1:'يناير',2:'فبراير',3:'مارس',4:'أبريل',5:'مايو',6:'يونيو',7:'يوليو',8:'أغسطس',9:'سبتمبر',10:'أكتوبر',11:'نوفمبر',12:'ديسمبر'};
-function txMonth(t) {
-    // date is YYYY/MM/DD
-    const parts = t.d.split('/');
-    return parseInt(parts[1]);
-}
+
+function txMonth(t) { return parseInt(t.d.split('/')[1]); }
+function txDay(t) { return parseInt(t.d.split('/')[2]); }
 function getMonths(txs) {
     const ms = new Set();
     txs.forEach(t => ms.add(txMonth(t)));
@@ -462,29 +460,44 @@ function filterByMonth(txs, month) {
     if (!month) return txs;
     return txs.filter(t => txMonth(t) === month);
 }
+function filterByDateRange(txs, startDate, endDate) {
+    return txs.filter(t => t.d >= startDate && t.d <= endDate);
+}
+function monthRanges(txs) {
+    const ranges = {};
+    txs.forEach(t => {
+        const mo = txMonth(t), day = txDay(t);
+        if (!ranges[mo]) ranges[mo] = { min: day, max: day };
+        if (day < ranges[mo].min) ranges[mo].min = day;
+        if (day > ranges[mo].max) ranges[mo].max = day;
+    });
+    return ranges;
+}
+function dateRange(txs) {
+    if (!txs.length) return { first: '', last: '' };
+    const dates = txs.map(t => t.d).sort();
+    return { first: dates[0], last: dates[dates.length - 1] };
+}
+function fmtDate(d) { const p = d.split('/'); return p[2] + '/' + p[1]; }
 
 // ============================================================
 // RENDER PANELS
 // ============================================================
 let snbMonth = null;
+let cmpMode = 'month';
 let cmpSnbMonth = null;
 
 function renderTotals() {
-    const ra = analyze(R_TX);
-    const sa = analyze(S_TX);
-    const te = ra.totD + sa.totD;
-    const ti = ra.totC + sa.totC;
-    const tn = R_TX.length + S_TX.length;
+    const ra = analyze(R_TX), sa = analyze(S_TX);
     document.getElementById('totals').innerHTML = `
-        <div class="tot"><div class="tot-v" style="color:var(--red)">${fmt0(te)}</div><div class="tot-l">إجمالي المصروفات</div></div>
-        <div class="tot"><div class="tot-v" style="color:var(--green)">${fmt0(ti)}</div><div class="tot-l">إجمالي الإيداعات</div></div>
-        <div class="tot"><div class="tot-v" style="color:var(--blue)">${tn}</div><div class="tot-l">عدد العمليات</div></div>`;
+        <div class="tot"><div class="tot-v" style="color:var(--red)">${fmt0(ra.totD+sa.totD)}</div><div class="tot-l">إجمالي المصروفات</div></div>
+        <div class="tot"><div class="tot-v" style="color:var(--green)">${fmt0(ra.totC+sa.totC)}</div><div class="tot-l">إجمالي الإيداعات</div></div>
+        <div class="tot"><div class="tot-v" style="color:var(--blue)">${R_TX.length+S_TX.length}</div><div class="tot-l">عدد العمليات</div></div>`;
 }
 
 function renderRajhi() {
     const a = analyze(R_TX);
-    const el = document.getElementById('rajhi');
-    el.innerHTML = `
+    document.getElementById('rajhi').innerHTML = `
         ${statsHTML(a)}
         <div class="cd"><div class="cd-t">ℹ️ معلومات الحساب</div><div class="inf">
             <div class="inf-r"><span class="inf-k">العميل</span><span class="inf-v">${R_INFO.customer}</span></div>
@@ -498,77 +511,102 @@ function renderRajhi() {
         <div class="cd"><div class="cd-t">📂 تفصيل الفئات</div>${catsHTML(a.cats, a.catN)}</div>
         <div class="cd"><div class="cd-t">📅 الإنفاق اليومي</div><div class="ch"><canvas id="rBar"></canvas></div></div>
         <div class="cd"><div class="cd-t">🏪 أكثر المتاجر إنفاقاً</div>${merchHTML(a.merch, a.mN)}</div>
-        <div class="cd"><div class="cd-t">📋 جميع العمليات (${R_TX.length})</div>${tblHTML(R_TX, 'rTbl')}</div>
-    `;
+        <div class="cd"><div class="cd-t">📋 جميع العمليات (${R_TX.length})</div>${tblHTML(R_TX, 'rTbl')}</div>`;
     mkPie('rPie', a.cats.map(c=>c[0]), a.cats.map(c=>c[1]));
     mkBar('rBar', a.dailyS.map(d=>d[0].slice(5)), a.dailyS.map(d=>d[1]), '#FF6B6B');
 }
 
 function renderSNB() {
     const months = getMonths(S_TX);
+    const ranges = monthRanges(S_TX);
     const filtered = filterByMonth(S_TX, snbMonth);
     const a = analyze(filtered);
-    const el = document.getElementById('snb');
+    const allRange = dateRange(S_TX);
 
-    let monthBar = '<div class="month-bar">';
-    monthBar += `<button class="mo-btn ${snbMonth===null?'on':''}" onclick="snbMonth=null;renderSNB()">📅 الكل</button>`;
+    let mb = '<div class="month-bar">';
+    mb += `<button class="mo-btn ${snbMonth===null?'on':''}" onclick="snbMonth=null;renderSNB()">📅 الكل: ${fmtDate(allRange.first)} — ${fmtDate(allRange.last)}</button>`;
     months.forEach(mo => {
-        monthBar += `<button class="mo-btn ${snbMonth===mo?'on':''}" onclick="snbMonth=${mo};renderSNB()">${MONTH_NAMES[mo]}</button>`;
+        const r = ranges[mo];
+        mb += `<button class="mo-btn ${snbMonth===mo?'on':''}" onclick="snbMonth=${mo};renderSNB()">${MONTH_NAMES[mo]}: ${r.min} — ${r.max}</button>`;
     });
-    monthBar += '</div>';
+    mb += '</div>';
 
-    const periodLabel = snbMonth ? MONTH_NAMES[snbMonth] + ' 2026' : S_INFO.period;
+    const periodLabel = snbMonth ? `${MONTH_NAMES[snbMonth]}: من يوم ${ranges[snbMonth].min} إلى يوم ${ranges[snbMonth].max}` : `من ${fmtDate(allRange.first)} إلى ${fmtDate(allRange.last)}`;
 
-    el.innerHTML = `
-        ${monthBar}
+    document.getElementById('snb').innerHTML = `
+        ${mb}
         ${statsHTML(a)}
         <div class="cd"><div class="cd-t">ℹ️ معلومات الحساب</div><div class="inf">
             <div class="inf-r"><span class="inf-k">العميل</span><span class="inf-v">${S_INFO.customer}</span></div>
             <div class="inf-r"><span class="inf-k">رقم الحساب</span><span class="inf-v">${S_INFO.account}</span></div>
-            <div class="inf-r"><span class="inf-k">الفترة</span><span class="inf-v">${periodLabel}</span></div>
+            <div class="inf-r"><span class="inf-k">الفترة المختارة</span><span class="inf-v">${periodLabel}</span></div>
             <div class="inf-r"><span class="inf-k">العمليات</span><span class="inf-v">${filtered.length} عملية</span></div>
         </div></div>
         <div class="cd"><div class="cd-t">🥧 توزيع المصروفات</div><div class="ch"><canvas id="sPie"></canvas></div></div>
         <div class="cd"><div class="cd-t">📂 تفصيل الفئات</div>${catsHTML(a.cats, a.catN)}</div>
         <div class="cd"><div class="cd-t">📅 الإنفاق اليومي</div><div class="ch"><canvas id="sBar"></canvas></div></div>
         <div class="cd"><div class="cd-t">🏪 أكثر المتاجر إنفاقاً</div>${merchHTML(a.merch, a.mN)}</div>
-        <div class="cd"><div class="cd-t">📋 جميع العمليات (${filtered.length})</div>${tblHTML(filtered, 'sTbl')}</div>
-    `;
+        <div class="cd"><div class="cd-t">📋 جميع العمليات (${filtered.length})</div>${tblHTML(filtered, 'sTbl')}</div>`;
     mkPie('sPie', a.cats.map(c=>c[0]), a.cats.map(c=>c[1]));
     mkBar('sBar', a.dailyS.map(d=>d[0].slice(5)), a.dailyS.map(d=>d[1]), '#45B7D1');
 }
 
 function renderCmp() {
     const snbMonths = getMonths(S_TX);
-    // Rajhi is mostly August
-    const rajhiMonth = 8;
+    const snbRanges = monthRanges(S_TX);
+    const rajhiRange = dateRange(R_TX);
+    if (cmpSnbMonth === null) cmpSnbMonth = 8;
 
-    if (cmpSnbMonth === null) cmpSnbMonth = 8; // default to August for fair comparison
+    let rFiltered, sFiltered, rLabel, sLabel, sChartLabel;
 
-    const rFiltered = R_TX; // Rajhi is one month only
-    const sFiltered = filterByMonth(S_TX, cmpSnbMonth);
-    const ra = analyze(rFiltered);
-    const sa = analyze(sFiltered);
+    if (cmpMode === 'same') {
+        rFiltered = R_TX;
+        sFiltered = filterByDateRange(S_TX, rajhiRange.first, rajhiRange.last);
+        rLabel = `الراجحي: من ${fmtDate(rajhiRange.first)} إلى ${fmtDate(rajhiRange.last)}`;
+        sLabel = `الأهلي: نفس الفترة (${fmtDate(rajhiRange.first)} — ${fmtDate(rajhiRange.last)})`;
+        sChartLabel = 'الأهلي (نفس الفترة)';
+    } else {
+        rFiltered = R_TX;
+        sFiltered = filterByMonth(S_TX, cmpSnbMonth);
+        const sr = snbRanges[cmpSnbMonth]||{min:'?',max:'?'};
+        rLabel = `الراجحي: من ${fmtDate(rajhiRange.first)} إلى ${fmtDate(rajhiRange.last)}`;
+        sLabel = `الأهلي — ${MONTH_NAMES[cmpSnbMonth]}: من يوم ${sr.min} إلى يوم ${sr.max}`;
+        sChartLabel = 'الأهلي - ' + MONTH_NAMES[cmpSnbMonth];
+    }
 
-    let monthBar = '<div class="cd"><div class="cd-t">📅 اختر شهر الأهلي للمقارنة</div><div class="month-bar">';
-    snbMonths.forEach(mo => {
-        monthBar += `<button class="mo-btn ${cmpSnbMonth===mo?'on':''}" onclick="cmpSnbMonth=${mo};renderCmp()">${MONTH_NAMES[mo]}</button>`;
-    });
-    monthBar += '</div></div>';
+    const ra = analyze(rFiltered), sa = analyze(sFiltered);
 
-    const el = document.getElementById('cmp');
-    el.innerHTML = `
-        ${monthBar}
+    // Mode buttons
+    let modeBar = '<div class="cd"><div class="cd-t">⚙️ طريقة المقارنة</div><div class="month-bar">';
+    modeBar += `<button class="mo-btn ${cmpMode==='month'?'on':''}" onclick="cmpMode='month';renderCmp()">📅 شهر مقابل شهر</button>`;
+    modeBar += `<button class="mo-btn ${cmpMode==='same'?'on':''}" onclick="cmpMode='same';renderCmp()">📆 نفس الفترة (${fmtDate(rajhiRange.first)} — ${fmtDate(rajhiRange.last)})</button>`;
+    modeBar += '</div></div>';
+
+    // Month selection for month mode
+    let monthBar = '';
+    if (cmpMode === 'month') {
+        monthBar = '<div class="cd"><div class="cd-t">📅 اختر شهر الأهلي</div><div class="month-bar">';
+        snbMonths.forEach(mo => {
+            const r = snbRanges[mo];
+            monthBar += `<button class="mo-btn ${cmpSnbMonth===mo?'on':''}" onclick="cmpSnbMonth=${mo};renderCmp()">${MONTH_NAMES[mo]}: ${r.min} — ${r.max}</button>`;
+        });
+        monthBar += '</div></div>';
+    }
+
+    document.getElementById('cmp').innerHTML = `
+        ${modeBar}${monthBar}
         <div class="cmp-g">
             <div class="cmp-c rj">
-                <div class="cmp-bn">🏦 الراجحي<br><small style="color:var(--text2);font-weight:400">أغسطس - سبتمبر</small></div>
+                <div class="cmp-bn">🏦 الراجحي</div>
+                <div style="font-size:0.7em;color:var(--text2);margin-bottom:8px">${rLabel}</div>
                 <div class="cmp-i"><div class="cmp-v" style="color:var(--red)">${fmt0(ra.totD)}</div><div class="cmp-l">مصروفات</div></div>
                 <div class="cmp-i"><div class="cmp-v" style="color:var(--green)">${fmt0(ra.totC)}</div><div class="cmp-l">إيداعات</div></div>
                 <div class="cmp-i"><div class="cmp-v">${rFiltered.length}</div><div class="cmp-l">عملية</div></div>
                 <div class="cmp-i"><div class="cmp-v">${fmt0(ra.avgE)}</div><div class="cmp-l">متوسط مصروف</div></div>
             </div>
             <div class="cmp-c sn">
-                <div class="cmp-bn">🏦 الأهلي<br><small style="color:var(--text2);font-weight:400">${MONTH_NAMES[cmpSnbMonth]} 2026</small></div>
+                <div class="cmp-bn">🏦 الأهلي</div>
+                <div style="font-size:0.7em;color:var(--text2);margin-bottom:8px">${sLabel}</div>
                 <div class="cmp-i"><div class="cmp-v" style="color:var(--red)">${fmt0(sa.totD)}</div><div class="cmp-l">مصروفات</div></div>
                 <div class="cmp-i"><div class="cmp-v" style="color:var(--green)">${fmt0(sa.totC)}</div><div class="cmp-l">إيداعات</div></div>
                 <div class="cmp-i"><div class="cmp-v">${sFiltered.length}</div><div class="cmp-l">عملية</div></div>
@@ -576,10 +614,8 @@ function renderCmp() {
             </div>
         </div>
         <div class="cd"><div class="cd-t">📊 مقارنة الإجماليات</div><div class="ch" style="height:280px"><canvas id="cmpBar"></canvas></div></div>
-        <div class="cd"><div class="cd-t">📊 مقارنة الفئات</div><div class="ch" style="height:${Math.max(260, (new Set([...ra.cats.map(c=>c[0]),...sa.cats.map(c=>c[0])])).size * 36)}px"><canvas id="cmpCat"></canvas></div></div>
-    `;
+        <div class="cd"><div class="cd-t">📊 مقارنة الفئات</div><div class="ch" style="height:${Math.max(260, (new Set([...ra.cats.map(c=>c[0]),...sa.cats.map(c=>c[0])])).size * 36)}px"><canvas id="cmpCat"></canvas></div></div>`;
 
-    // Comparison bar chart
     if (charts['cmpBar']) charts['cmpBar'].destroy();
     charts['cmpBar'] = new Chart(document.getElementById('cmpBar'), {
         type: 'bar',
@@ -587,24 +623,19 @@ function renderCmp() {
             labels: ['المصروفات', 'الإيداعات', 'متوسط المصروف'],
             datasets: [
                 { label: 'الراجحي', data: [ra.totD, ra.totC, ra.avgE], backgroundColor: 'rgba(78,205,196,0.8)', borderRadius: 6 },
-                { label: 'الأهلي - '+MONTH_NAMES[cmpSnbMonth], data: [sa.totD, sa.totC, sa.avgE], backgroundColor: 'rgba(69,183,209,0.8)', borderRadius: 6 }
+                { label: sChartLabel, data: [sa.totD, sa.totC, sa.avgE], backgroundColor: 'rgba(69,183,209,0.8)', borderRadius: 6 }
             ]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { labels: { font: { size: 12, family: 'Tajawal' }, color: '#8888aa' } } },
-            scales: {
-                x: { grid: { display: false }, ticks: { color: '#8888aa', font: { family: 'Tajawal' } } },
-                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8888aa', font: { family: 'Tajawal' } } }
-            }
+            scales: { x: { grid: { display: false }, ticks: { color: '#8888aa', font: { family: 'Tajawal' } } },
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8888aa', font: { family: 'Tajawal' } } } }
         }
     });
 
-    // Category comparison
     const allCats = [...new Set([...ra.cats.map(c=>c[0]), ...sa.cats.map(c=>c[0])])].sort();
-    const rDict = Object.fromEntries(ra.cats);
-    const sDict = Object.fromEntries(sa.cats);
-
+    const rDict = Object.fromEntries(ra.cats), sDict = Object.fromEntries(sa.cats);
     if (charts['cmpCat']) charts['cmpCat'].destroy();
     charts['cmpCat'] = new Chart(document.getElementById('cmpCat'), {
         type: 'bar',
@@ -612,19 +643,22 @@ function renderCmp() {
             labels: allCats,
             datasets: [
                 { label: 'الراجحي', data: allCats.map(c=>rDict[c]||0), backgroundColor: 'rgba(78,205,196,0.7)', borderRadius: 4 },
-                { label: 'الأهلي - '+MONTH_NAMES[cmpSnbMonth], data: allCats.map(c=>sDict[c]||0), backgroundColor: 'rgba(69,183,209,0.7)', borderRadius: 4 }
+                { label: sChartLabel, data: allCats.map(c=>sDict[c]||0), backgroundColor: 'rgba(69,183,209,0.7)', borderRadius: 4 }
             ]
         },
         options: {
             responsive: true, maintainAspectRatio: false, indexAxis: 'y',
             plugins: { legend: { labels: { font: { size: 11, family: 'Tajawal' }, color: '#8888aa' } } },
-            scales: {
-                x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8888aa', font: { family: 'Tajawal' } } },
-                y: { grid: { display: false }, ticks: { color: '#8888aa', font: { size: 10, family: 'Tajawal' } } }
-            }
+            scales: { x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8888aa', font: { family: 'Tajawal' } } },
+                y: { grid: { display: false }, ticks: { color: '#8888aa', font: { size: 10, family: 'Tajawal' } } } }
         }
     });
 }
+
+
+
+
+
 
 // ============================================================
 // INIT
